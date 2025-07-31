@@ -1,0 +1,32 @@
+{
+  "version": 2,
+  "builds": [
+    { 
+      "src": "api/webhook.js", 
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 30
+      }
+    }
+  ],
+  "routes": [
+    { 
+      "src": "/api/webhook", 
+      "dest": "api/webhook.js",
+      "methods": ["POST"]
+    },
+    {
+      "src": "/health",
+      "dest": "api/webhook.js",
+      "methods": ["GET"]
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "api/webhook.js": {
+      "maxDuration": 30
+    }
+  }
+}
