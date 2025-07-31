@@ -23,10 +23,5 @@
   ],
   "env": {
     "NODE_ENV": "production"
-  },
-  "functions": {
-    "api/webhook.js": {
-      "maxDuration": 30
-    }
   }
 }
