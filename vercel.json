@@ -12,12 +12,12 @@
   "routes": [
     { 
       "src": "/api/webhook", 
-      "dest": "api/webhook.js",
+      "dest": "/api/webhook",
       "methods": ["POST"]
     },
     {
       "src": "/health",
-      "dest": "api/webhook.js",
+      "dest": "/api/webhook",
       "methods": ["GET"]
     }
   ],
