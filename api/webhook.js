@@ -1,82 +1,100 @@
-const sessions = {};
+import { saveLeadToSheet } from '../../lib/saveLeadToSheet.js'; // Adjust if needed
+import { MessagingResponse } from 'twilio/lib/twiml/MessagingResponse.js';
 
-export default function handler(req, res) {
-  if (req.method === 'POST') {
-    const incomingMsg = req.body.Body?.trim();
-    const from = req.body.From;
-    const user = sessions[from] || { step: 0, lang: null };
+const users = new Map();
 
-    // Auto-detect language on first message
-    if (user.step === 0 && !user.lang) {
-      const msg = incomingMsg.toLowerCase();
-      const isPortuguese = /oi|como|preço|cpf|endereço|começar|cadastro/.test(msg);
-      user.lang = isPortuguese ? 'pt' : 'en';
-    }
+export default async function handler(req, res) {
+  const twiml = new MessagingResponse();
 
-    const lang = user.lang;
-    let reply = '';
+  const incomingMsg = req.body.Body?.trim();
+  const from = req.body.From;
 
-    switch (user.step) {
-      case 0:
-        reply = lang === 'pt'
-          ? `👋 Bem-vindo à RapidEx!\nVamos começar.\nQual é o seu nome completo?`
-          : `👋 Welcome to RapidEx 🇺🇸📦🇧🇷\nLet's get you set up!\nWhat is your full name?`;
-        user.step = 1;
-        break;
+  let user = users.get(from);
 
-      case 1:
-        user.name = incomingMsg;
-        reply = lang === 'pt'
-          ? `📧 Obrigado, ${user.name}!\nPor favor, digite seu e-mail:`
-          : `📧 Thanks, ${user.name}!\nPlease enter your email address:`;
-        user.step = 2;
-        break;
-
-      case 2:
-        user.email = incomingMsg;
-        reply = lang === 'pt'
-          ? `🏠 Ótimo! Agora, qual é o seu **endereço completo no Brasil** (incluindo CEP)?`
-          : `🏠 Great! Now, what's your full **Brazilian shipping address** (including ZIP code)?`;
-        user.step = 3;
-        break;
-
-      case 3:
-        user.address = incomingMsg;
-        reply = lang === 'pt'
-          ? `🔢 Por fim, digite seu **CPF (Cadastro de Pessoas Físicas):**`
-          : `🔢 Lastly, please enter your **CPF (Cadastro de Pessoas Físicas):**`;
-        user.step = 4;
-        break;
-
-      case 4:
-        user.cpf = incomingMsg;
-        reply = lang === 'pt'
-          ? `✅ Tudo certo, ${user.name}!\n\nSeus dados:\n📛 Nome: ${user.name}\n📧 E-mail: ${user.email}\n🏠 Endereço: ${user.address}\n🪪 CPF: ${user.cpf}\n\nVamos configurar seu endereço nos EUA e entraremos em contato em breve. Obrigado por escolher a RapidEx!`
-          : `✅ All done, ${user.name}!\n\nHere's what we got:\n📛 Name: ${user.name}\n📧 Email: ${user.email}\n🏠 Address: ${user.address}\n🪪 CPF: ${user.cpf}\n\nWe'll now set up your U.S. forwarding address and reach out soon. Thank you for choosing RapidEx!`;
-        console.log("New RapidEx Signup:", user);
-        user.step = 0;
-        user.lang = null; // reset for next session
-        break;
-
-      default:
-        reply = lang === 'pt'
-          ? `Olá! Vamos começar de novo. Qual é o seu nome completo?`
-          : `Hi! Let's start again. What is your full name?`;
-        user.step = 1;
-        break;
-    }
-
-    sessions[from] = user;
-
-    const twiml = `
-      <Response>
-        <Message>${reply}</Message>
-      </Response>
-    `;
-
-    res.setHeader('Content-Type', 'text/xml');
-    res.status(200).send(twiml);
-  } else {
-    res.status(200).json({ status: "RapidEx bot is running!", timestamp: new Date().toISOString() });
+  if (!user) {
+    user = { step: 0, lang: null };
+    users.set(from, user);
   }
+
+  let reply = '';
+
+  // Detect language
+  if (!user.lang) {
+    if (incomingMsg.toLowerCase() === 'oi' || incomingMsg.toLowerCase().startsWith('olá')) {
+      user.lang = 'pt';
+    } else {
+      user.lang = 'en';
+    }
+  }
+
+  const lang = user.lang;
+
+  switch (user.step) {
+    case 0:
+      reply = lang === 'pt'
+        ? 'Olá! Bem-vindo à RapidEx 🇧🇷✈️🇺🇸\n\nQual é o seu nome completo?'
+        : 'Hello! Welcome to RapidEx 🇺🇸📦🇧🇷\n\nWhat is your full name?';
+      user.step++;
+      break;
+
+    case 1:
+      user.name = incomingMsg;
+      reply = lang === 'pt'
+        ? `Obrigado, ${user.name}! Qual é o seu email?`
+        : `Thanks, ${user.name}! What is your email?`;
+      user.step++;
+      break;
+
+    case 2:
+      user.email = incomingMsg;
+      reply = lang === 'pt'
+        ? 'Qual é o seu endereço completo no Brasil?'
+        : 'What is your full address in Brazil?';
+      user.step++;
+      break;
+
+    case 3:
+      user.address = incomingMsg;
+      reply = lang === 'pt'
+        ? 'Por favor, informe seu CPF:'
+        : 'Please enter your CPF:';
+      user.step++;
+      break;
+
+    case 4:
+      user.cpf = incomingMsg;
+
+      try {
+        await saveLeadToSheet({
+          phone: from,
+          name: user.name,
+          email: user.email,
+          address: user.address,
+          cpf: user.cpf,
+        });
+
+        reply = lang === 'pt'
+          ? `✅ Tudo certo, ${user.name}!\n\nSeus dados foram salvos com sucesso. Em breve você receberá seu endereço nos EUA. Obrigado por escolher a RapidEx!`
+          : `✅ All set, ${user.name}!\n\nYour info was saved successfully. You’ll receive your U.S. address shortly. Thanks for choosing RapidEx!`;
+      } catch (error) {
+        console.error('❌ Error saving to Google Sheets:', error);
+        reply = lang === 'pt'
+          ? '⚠️ Ocorreu um erro ao salvar seus dados. Por favor, tente novamente mais tarde.'
+          : '⚠️ There was an error saving your info. Please try again later.';
+      }
+
+      users.delete(from); // Reset session
+      break;
+
+    default:
+      reply = lang === 'pt'
+        ? 'Olá novamente! Qual é o seu nome completo?'
+        : 'Hi again! What is your full name?';
+      user.step = 1;
+      break;
+  }
+
+  twiml.message(reply);
+  res.setHeader('Content-Type', 'text/xml');
+  res.status(200).send(twiml.toString());
 }
