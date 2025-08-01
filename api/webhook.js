@@ -1,79 +1,39 @@
-import twilio from 'twilio';
-
-export default async function handler(req, res) {
-  // Set CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  // Handle preflight request
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
-
-  // Health check for GET requests
-  if (req.method === 'GET') {
-    return res.status(200).json({
-      status: 'Bot is running!',
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  // Handle WhatsApp messages (POST requests from Twilio)
+export default function handler(req, res) {
   if (req.method === 'POST') {
-    try {
-      console.log('Received webhook:', req.body);
+    const incomingMsg = req.body.Body.toLowerCase();
 
-      // Extract message details from Twilio webhook
-      const incomingMessage = req.body.Body || '';
-      const from = req.body.From || '';
-      const to = req.body.To || '';
+    let reply = '';
 
-      console.log(`Message from ${from}: ${incomingMessage}`);
-
-      // Simple bot responses
-      let responseMessage = '';
-
-      if (incomingMessage.toLowerCase().includes('hello') || incomingMessage.toLowerCase().includes('hi')) {
-        responseMessage = '👋 Hello! I\'m your WhatsApp bot. How can I help you today?';
-      } else if (incomingMessage.toLowerCase().includes('help')) {
-        responseMessage = `🤖 I'm a simple bot! Try saying:
-- "hello" for a greeting
-- "time" for current time
-- "joke" for a joke`;
-      } else if (incomingMessage.toLowerCase().includes('time')) {
-        responseMessage = `🕐 Current time: ${new Date().toLocaleString()}`;
-      } else if (incomingMessage.toLowerCase().includes('joke')) {
-        const jokes = [
-          'Why don\'t scientists trust atoms? Because they make up everything!',
-          'Why did the math book look so sad? Because it was full of problems!',
-          'What do you call a fake noodle? An impasta!'
-        ];
-        responseMessage = jokes[Math.floor(Math.random() * jokes.length)];
-      } else {
-        responseMessage = `You said: "${incomingMessage}". I'm a simple bot - try saying "help" to see what I can do!`;
-      }
-
-      // Create Twilio response using TwiML
-      const twiml = new twilio.twiml.MessagingResponse();
-      twiml.message(responseMessage);
-
-      // Set proper content type for Twilio
-      res.setHeader('Content-Type', 'text/xml');
-      return res.status(200).send(twiml.toString());
-
-    } catch (error) {
-      console.error('Webhook error:', error);
-      
-      // Send error response in TwiML format
-      const twiml = new twilio.twiml.MessagingResponse();
-      twiml.message('Sorry, I encountered an error. Please try again.');
-      
-      res.setHeader('Content-Type', 'text/xml');
-      return res.status(200).send(twiml.toString());
+    // English & Portuguese triggers
+    if (incomingMsg.includes('how') || incomingMsg.includes('como funciona')) {
+      reply = `📦 Welcome to RapidEx 🇺🇸🇧🇷\n\n🇺🇸 How it works:\n1️⃣ Get your free U.S. address\n2️⃣ Shop at any U.S. store\n3️⃣ We receive, repackage, and forward your packages to Brazil\n\n🇧🇷 Como funciona:\n1️⃣ Você recebe um endereço gratuito nos EUA\n2️⃣ Compra em qualquer loja americana\n3️⃣ A RapidEx reenvia seus pacotes para o Brasil`;
+    } else if (
+      incomingMsg.includes('price') ||
+      incomingMsg.includes('cost') ||
+      incomingMsg.includes('preço') ||
+      incomingMsg.includes('quanto')
+    ) {
+      reply = `💰 RapidEx Pricing:\n\n🇺🇸 - $10 flat forwarding fee per box\n- Shipping via USPS, FedEx, or DHL\n- Rates based on size & weight\n\n🇧🇷 - Taxa de reenvio: $10 por caixa\n- Frete via USPS, FedEx ou DHL\n- Custo baseado em tamanho e peso`;
+    } else if (
+      incomingMsg.includes('start') ||
+      incomingMsg.includes('começar') ||
+      incomingMsg.includes('signup') ||
+      incomingMsg.includes('cadastro')
+    ) {
+      reply = `🚀 Ready to get started with RapidEx?\n\n🇺🇸 Reply with your email to receive your free U.S. address.\n\n🇧🇷 Responda com seu e-mail para receber seu endereço nos EUA gratuitamente.`;
+    } else {
+      reply = `👋 Welcome to RapidEx 🇺🇸📦🇧🇷\n\n🇺🇸 Type:\n- "How" to learn how it works\n- "Price" to get pricing info\n- "Start" to begin\n\n🇧🇷 Digite:\n- "Como funciona" para entender o processo\n- "Preço" para saber os custos\n- "Começar" para iniciar`;
     }
-  }
 
-  // Method not allowed
-  return res.status(405).json({ error: 'Method not allowed' });
+    const twiml = `
+      <Response>
+        <Message>${reply}</Message>
+      </Response>
+    `;
+
+    res.setHeader('Content-Type', 'text/xml');
+    res.status(200).send(twiml);
+  } else {
+    res.status(200).json({ status: "RapidEx bot is running!", timestamp: new Date().toISOString() });
+  }
 }
