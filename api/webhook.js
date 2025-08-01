@@ -1,16 +1,19 @@
+import { MessagingResponse } from 'twilio/lib/twiml/MessagingResponse.js';
+import { getUserByPhone, updateUserStepOrCreate } from '../../lib/saveLeadToSheet.js';
+
 export default async function handler(req, res) {
+  const twiml = new MessagingResponse();
+  const incomingMsg = req.body.Body?.trim();
+  const from = req.body.From;
+
+  console.log('📥 Incoming Message:', { from, incomingMsg });
+
+  if (!incomingMsg || !from) {
+    twiml.message("❗ Please send a valid message.");
+    return res.status(200).setHeader('Content-Type', 'text/xml').send(twiml.toString());
+  }
+
   try {
-    const twiml = new MessagingResponse();
-    const incomingMsg = req.body.Body?.trim();
-    const from = req.body.From;
-
-    console.log("Incoming:", { from, incomingMsg });
-
-    if (!incomingMsg) {
-      twiml.message("Please send a valid message.");
-      return res.status(200).setHeader('Content-Type', 'text/xml').send(twiml.toString());
-    }
-
     let user = await getUserByPhone(from);
     user = user || { phone: from, step: 0 };
 
@@ -64,16 +67,15 @@ export default async function handler(req, res) {
         break;
     }
 
+    console.log('📤 Outgoing Reply:', reply);
     await updateUserStepOrCreate(user);
-
     twiml.message(reply);
-    res.setHeader('Content-Type', 'text/xml');
-    res.status(200).send(twiml.toString());
 
-  } catch (err) {
-    console.error('🔥 Webhook Error:', err);
-    const twiml = new MessagingResponse();
+  } catch (error) {
+    console.error('🔥 Bot crashed:', error);
     twiml.message('⚠️ Internal error. Please try again later.');
-    res.status(200).setHeader('Content-Type', 'text/xml').send(twiml.toString());
   }
+
+  res.setHeader('Content-Type', 'text/xml');
+  res.status(200).send(twiml.toString());
 }
