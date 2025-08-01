@@ -1,4 +1,5 @@
-import { MessagingResponse } from 'twilio/lib/twiml/MessagingResponse.js';
+import twilio from 'twilio';
+const { MessagingResponse } = twilio.twiml;
 
 // In-memory storage (for testing - will reset on each deployment)
 const users = new Map();
