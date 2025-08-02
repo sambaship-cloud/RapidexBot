@@ -1,4 +1,4 @@
-import { MessagingResponse } from 'twilio/lib/twiml/MessagingResponse.js';
+import { MessagingResponse } from 'twilio';
 import { buffer } from 'micro';
 
 export const config = {
