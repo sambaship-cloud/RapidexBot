@@ -1,7 +1,6 @@
 import { MessagingResponse } from 'twilio/lib/twiml/MessagingResponse.js';
 import { getUserByPhone, updateUserStepOrCreate } from '../../lib/saveLeadToSheet.js';
 import { buffer } from 'micro';
-
 // Disable the default body parser so we can manually parse x-www-form-urlencoded
 export const config = {
   api: {
