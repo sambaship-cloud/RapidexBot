@@ -1,13 +1,13 @@
 {
-  "name": "basic-whatsapp-bot",
+  "name": "whatsapp-chatbot",
   "version": "1.0.0",
-  "description": "Basic WhatsApp chatbot with Twilio and Vercel",
-  "main": "api/webhook.js",
   "type": "module",
+  "main": "api/webhook.js",
   "scripts": {
     "dev": "vercel dev"
   },
   "dependencies": {
+    "micro": "^9.3.4",
     "twilio": "^4.23.0"
   },
   "engines": {
