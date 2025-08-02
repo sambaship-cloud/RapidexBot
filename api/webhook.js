@@ -1,5 +1,5 @@
-import { MessagingResponse } from 'twilio';
-import { buffer } from 'micro';
+const { MessagingResponse } = require('twilio');
+const { buffer } = require('micro');
 
 export const config = {
   api: {
@@ -7,7 +7,7 @@ export const config = {
   },
 };
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).send('Method Not Allowed');
   }
@@ -29,4 +29,4 @@ export default async function handler(req, res) {
     console.error('Error processing webhook:', error);
     res.status(500).send('Internal Server Error');
   }
-}
+};

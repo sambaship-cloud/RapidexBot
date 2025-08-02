@@ -1,7 +1,7 @@
 {
   "name": "whatsapp-chatbot",
   "version": "1.0.0",
-  "type": "module",
+//   "type": "module",
   "main": "api/webhook.js",
   "scripts": {
     "dev": "vercel dev"
@@ -11,6 +11,6 @@
     "twilio": "^4.23.0"
   },
   "engines": {
-    "node": "22.x"
+    "node": "18.x"
   }
 }
